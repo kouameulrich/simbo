@@ -3,10 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:simbo_mobile/ui/pages/collecte.page.dart';
 import 'dart:typed_data';
-import 'package:pdf/pdf.dart' as pdf;
 
 class PrintingPage extends StatefulWidget {
-  pw.Document docPage;
+  final pw.Document docPage;
   PrintingPage({Key? key, required this.docPage}) : super(key: key);
 
   @override
@@ -75,27 +74,25 @@ class _PrintingPageState extends State<PrintingPage> {
                 },
                 child: Text('Disconnect')),
             ElevatedButton(
-                onPressed: () async {
+              onPressed: () async {
+                if (selectedDevices != null) {
+                  await printer.connect(selectedDevices!);
+
                   if ((await printer.isConnected)!) {
-                    printer.printNewLine();
-                    // SIZE
-                    // 0: normal
-                    // 1: normal-bold
-                    // 2: medium-bold
-                    // 3: large-biold
-
-                    // ALIGN
-                    // 0: left
-                    // 1: center
-                    // 2: rigth
-                    printer.printCustom('${widget.docPage.toString()}', 0, 1);
-                    printer.printQRcode('textToQR', 200, 200, 1);
-
-                    print("-----------   DATA ---------");
-                    print(widget.docPage);
+                    final Uint8List pdfBytes = await widget.docPage.save();
+                    await printer.writeBytes(pdfBytes);
+                    await printer.paperCut();
+                    print('------------  DONNÉES  -----------');
+                    print(pdfBytes);
+                  } else {
+                    print('Erreur de connexion à l\'imprimante');
                   }
-                },
-                child: Text('Print'))
+                } else {
+                  print('Aucune imprimante sélectionnée');
+                }
+              },
+              child: Text('Imprimer'),
+            ),
           ],
         ),
       ),

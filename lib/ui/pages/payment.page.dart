@@ -29,20 +29,13 @@ class _PaymentPageState extends State<PaymentPage> {
   final dbHandler = locator<LocalService>();
   final storage = locator<TokenStorageService>();
   final printerService = locator<PrinterService>();
-  late final Future<Agent?> _futureAgentConnected;
-  late final Future<Collectivite?> _futureCollectiviteConnected;
   Agent? agentConnected;
   Collectivite? collectiviteConnected;
   String? matricule;
-  List<Facture> _factures = [];
-  List<Collectivite> _collectivite = [];
-  int _countFacture = 0;
-  int _countFacturePaye = 0;
   List<String> etatFactureMobile = [
     'MOBILE_REGLEE',
     'MOBILE_REGLEMENT_PARTIEL'
   ];
-
 
   TextEditingController montantverseController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -62,20 +55,11 @@ class _PaymentPageState extends State<PaymentPage> {
   @override
   void initState() {
     print('initstate');
-    _futureAgentConnected = getAgent();
-    _futureCollectiviteConnected = getCollectivite();
     super.initState();
     WidgetsBinding.instance?.addPostFrameCallback((_) {
       // do something
       print('Postconstruct');
       getAllFacture().then((value) => setState(() {
-            _countFacture = value!.length;
-            _factures = value;
-            _countFacturePaye = value
-                .where((element) =>
-                    etatFactureMobile.contains(element.etatFacture))
-                .toList()
-                .length;
           }));
     });
   }
@@ -98,8 +82,8 @@ class _PaymentPageState extends State<PaymentPage> {
         ),
         leading: IconButton(
             onPressed: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => CollectePage()));
+              Navigator.push(
+                  context, MaterialPageRoute(builder: (_) => CollectePage()));
             },
             icon: const Icon(Icons.arrow_back_ios_new)),
         centerTitle: true,
@@ -306,7 +290,8 @@ class _PaymentPageState extends State<PaymentPage> {
                       widget.facture.resteAPayer =
                           (double.parse(widget.facture.resteAPayer.toString()) -
                               double.parse(montantverseController.text));
-                      widget.facture.dateOperation = dateFormat.format(DateTime.now());
+                      widget.facture.dateOperation =
+                          dateFormat.format(DateTime.now());
                       await storage
                           .retrieveAgentConnected()
                           .then((value) => agentConnected = value);
@@ -323,14 +308,21 @@ class _PaymentPageState extends State<PaymentPage> {
                         widget.facture.etatFacture = 'MOBILE_REGLEMENT_PARTIEL';
                       }
                       await dbHandler.updateFacture(widget.facture.toJson());
-                     pw.Document  docPage1 = await printerService.printFacture(widget.facture, agentConnected!, collectiviteConnected!);
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                PrintingPage(docPage: docPage1),
-                          ));
+                      pw.Document docPage = await printerService.printFacture(
+                        widget.facture,
+                        agentConnected!,
+                        collectiviteConnected!,
+                      );
 
+                      // ignore: use_build_context_synchronously
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PrintingPage(
+                            docPage: docPage,
+                          ),
+                        ),
+                      );
                     },
                     child: const Text('Oui'))
               ],
@@ -339,4 +331,3 @@ class _PaymentPageState extends State<PaymentPage> {
     }
   }
 }
-
