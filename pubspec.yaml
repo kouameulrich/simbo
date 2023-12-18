@@ -43,16 +43,17 @@ dependencies:
   sqflite: ^2.2.2
   path_provider: ^2.0.11
   open_file: ^3.2.1
-  pdf: ^3.10.7
+  pdf: ^3.7.0
   google_fonts: ^6.1.0
   dropdown_search: ^5.0.5
   intl: ^0.18.1
   percent_indicator: ^4.2.2
   pattern_formatter: ^3.0.0
-  printing: ^5.11.1
-  bluetooth_print: ^4.3.0
-  blue_thermal_printer: ^1.2.3
-  flutter_bluetooth_serial: ^0.4.0
+  # printing: ^5.11.1
+  image: ^3.0.2
+  esc_pos_bluetooth: ^0.4.0
+  esc_pos_utils: ^1.1.0
+  flutter_bluetooth_basic: ^0.1.7
 
 dev_dependencies:
   flutter_test:
