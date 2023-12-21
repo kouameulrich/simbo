@@ -1,150 +1,160 @@
-import 'dart:typed_data';
-
+import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
-import 'package:flutter_bluetooth_basic/flutter_bluetooth_basic.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:simbo_mobile/ui/pages/collecte.page.dart';
-import 'package:esc_pos_bluetooth/esc_pos_bluetooth.dart';
-import 'package:esc_pos_utils/esc_pos_utils.dart';
+import 'package:simbo_mobile/models/agent.dart';
+import 'package:simbo_mobile/models/collectivite.dart';
+import 'package:simbo_mobile/models/facture.dart';
 
 class PrintingPage extends StatefulWidget {
-  final pw.Document docPage;
-  PrintingPage({Key? key, required this.docPage}) : super(key: key);
+  Facture facture;
+  Collectivite collectiviteConnected;
+  Agent agentConnected;
+  PrintingPage(
+      {Key? key,
+      required this.facture,
+      required this.collectiviteConnected,
+      required this.agentConnected})
+      : super(key: key);
 
   @override
   State<PrintingPage> createState() => _PrintingPageState();
 }
 
 class _PrintingPageState extends State<PrintingPage> {
-  PrinterBluetoothManager _printerManager = PrinterBluetoothManager();
-  List<PrinterBluetooth> _devices = [];
-  String? _devicesMsg;
-
-  BluetoothManager bluetoothManager = BluetoothManager.instance;
+  List<BluetoothDevice> devices = [];
+  BluetoothDevice? selectedDevice;
+  BlueThermalPrinter printer = BlueThermalPrinter.instance;
 
   @override
   void initState() {
-    bluetoothManager.state.listen((val) {
-      if (!mounted) return;
-      if (val == 12) {
-        initPrinter();
-        print('on');
-      } else if (val == 10) {
-        print('off');
-        setState(() {
-          _devicesMsg = 'Bluetooth Disconnect!';
-        });
-      }
-    });
-    print(widget.docPage);
     super.initState();
+    getDevices();
+  }
+
+  void getDevices() async {
+    devices = await printer.getBondedDevices();
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CollectePage(),
-              )),
-        ),
-        centerTitle: true,
-        title: const Text('Preview Page'),
+        title: const Text("IMPRESSION"),
+        backgroundColor: const Color(0xff2f7b5f),
       ),
-      body: _devices.isEmpty
-          ? Center(
-              child: Text(_devicesMsg ?? ''),
-            )
-          : ListView.builder(
-              itemCount: _devices.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(_devices[index].name.toString()),
-                  subtitle: Text(_devices[index].address.toString()),
-                  onTap: () {
-                    _startPrint(_devices[index]);
-                  },
-                );
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            DropdownButton<BluetoothDevice>(
+              value: selectedDevice,
+              hint: Text('Selectionner une imprimante'),
+              items: devices
+                  .map((e) => DropdownMenuItem(
+                        child: Text(e.name!),
+                        value: e,
+                      ))
+                  .toList(),
+              onChanged: (device) {
+                setState(() {
+                  selectedDevice = device;
+                });
               },
             ),
-    );
-  }
+            const SizedBox(
+              height: 10,
+            ),
+            ElevatedButton(
+                onPressed: () {
+                  printer.connect(selectedDevice!);
+                },
+                style: ElevatedButton.styleFrom(
+                  primary: const Color(0xff2f7b5f),
+                ),
+                child: const Text('Connecter')),
+            ElevatedButton(
+                onPressed: () {
+                  printer.disconnect();
+                },
+                style: ElevatedButton.styleFrom(
+                  primary: const Color(0xff2f7b5f),
+                ),
+                child: const Text('Déconnecter')),
+            ElevatedButton(
+                onPressed: () async {
+                  if ((await printer.isConnected)!) {
+                    printer.printNewLine();
+                    //SIZE
+                    // 0: Normal
+                    // 1: Normal - Bold
+                    // 2: Medium - Bold
+                    // 4: Large - Bold
 
-  void initPrinter() {
-    _printerManager.startScan(Duration(seconds: 2));
-    _printerManager.scanResults.listen((val) {
-      if (!mounted) return;
-
-      setState(() {
-        _devices = val;
-      });
-      print(_devices);
-      if (_devices.isEmpty) {
-        setState(() {
-          _devicesMsg = 'No Devices';
-        });
-      }
-
-      print(val);
-    });
-  }
-
-  Future<void> _startPrint(PrinterBluetooth printer) async {
-    _printerManager.selectPrinter(printer);
-    final result =
-        await _printerManager.printTicket(_ticket(PaperSize.mm80) as List<int>);
-    showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-              content: Text(result.msg),
-            ));
-  }
-
-  Future<Ticket> _ticket(PaperSize paper) async {
-    final ticket = Ticket(paper);
-    int total = 0;
-    // ticket.text('test');
-    ticket.text(
-      'SIMBO',
-      styles: PosStyles(
-        align: PosAlign.center,
-        height: PosTextSize.size2,
-        width: PosTextSize.size2,
+                    //ALIGN
+                    // 0: left
+                    // 1: center
+                    // 2: right
+                    printer.printCustom('SIMBO', 4, 1);
+                    printer.printNewLine();
+                    printer.printCustom(
+                        widget.collectiviteConnected!.nom.toString(), 0, 1);
+                    printer.printNewLine();
+                    printer.printCustom(
+                        'CTB:' + widget.collectiviteConnected!.code.toString(),
+                        0,
+                        1);
+                    printer.printCustom(
+                        'REF:' +
+                            widget.collectiviteConnected!.reference.toString(),
+                        0,
+                        1);
+                    printer.printCustom(
+                        'TEL:' +
+                            widget.collectiviteConnected!.telephone.toString(),
+                        0,
+                        1);
+                    printer.printCustom(
+                        'FAX:' +
+                            widget.collectiviteConnected!.adresse.toString(),
+                        0,
+                        1);
+                    printer.printNewLine();
+                    printer.printNewLine();
+                    printer.printNewLine();
+                    printer.printCustom('Paiement Taxe anterieure', 1, 1);
+                    printer.printCustom(
+                        widget.facture!.recuPaiement.toString(), 1, 1);
+                    printer.printCustom(
+                        widget.facture!.dateOperation.toString(), 1, 1);
+                    printer.printNewLine();
+                    printer.printNewLine();
+                    printer.printCustom(
+                        widget.facture!.montantPaye.toString(), 1, 1);
+                    printer.printNewLine();
+                    printer.printNewLine();
+                    printer.print4Column(
+                        'Contribuable:' +
+                            widget.facture!.nomContribuable.toString(),
+                        'Matricule' +
+                            widget.facture!.matriculeContribuable.toString(),
+                        'Equipement' +
+                            widget.facture!.matriculeEquipement.toString(),
+                        'Agent:' + widget.agentConnected!.nom.toString(),
+                        1);
+                    printer.printQRcode('Thermal Print Demo', 200, 200, 1);
+                    printer.printNewLine();
+                    printer.printCustom('Powered by ORBIT', 1, 1);
+                    printer.printNewLine();
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  primary: const Color(0xff2f7b5f),
+                ),
+                child: const Text('Imprimer')),
+          ],
+        ),
       ),
     );
-
-    Uint8List result = await widget.docPage.save();
-    for (var i = 0; i < result.length; i++) {
-      total += result[i];
-    }
-    ticket.cut();
-    return ticket;
-  }
-
-  @override
-  void dispose() {
-    _printerManager.stopScan();
-    // TODO: implement dispose
-    super.dispose();
-  }
-}
-
-class Ticket {
-  // Vos méthodes et propriétés ici
-  Ticket(PaperSize paper) {
-    // Initialisation de la classe Ticket
-  }
-
-  void text(String text, {required PosStyles styles}) {
-    // Implémentation de la méthode text
-  }
-
-  void cut() {
-    // Implémentation de la méthode cut
   }
 }

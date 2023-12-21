@@ -16,9 +16,16 @@ import 'package:simbo_mobile/widgets/default.colors.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 class PaymentPage extends StatefulWidget {
-  PaymentPage({Key? key, required this.facture}) : super(key: key);
+  PaymentPage(
+      {Key? key,
+      required this.facture,
+      required this.agent,
+      required this.collectivite})
+      : super(key: key);
 
   final Facture facture;
+  final Agent agent;
+  final Collectivite collectivite;
 
   @override
   State<PaymentPage> createState() => _PaymentPageState();
@@ -59,8 +66,7 @@ class _PaymentPageState extends State<PaymentPage> {
     WidgetsBinding.instance?.addPostFrameCallback((_) {
       // do something
       print('Postconstruct');
-      getAllFacture().then((value) => setState(() {
-          }));
+      getAllFacture().then((value) => setState(() {}));
     });
   }
 
@@ -315,13 +321,22 @@ class _PaymentPageState extends State<PaymentPage> {
                       );
 
                       // ignore: use_build_context_synchronously
-                      Navigator.push(
+                      /*Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => PrintingPage(
                             docPage: docPage,
                           ),
                         ),
+                      );*/
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => PrintingPage(
+                                  facture: widget.facture,
+                                  collectiviteConnected: widget.collectivite,
+                                  agentConnected: widget.agent,
+                                )),
                       );
                     },
                     child: const Text('Oui'))

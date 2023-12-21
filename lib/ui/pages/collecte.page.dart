@@ -75,12 +75,12 @@ class _CollectePageState extends State<CollectePage> {
                 .length;
           }));
       getAgent().then((value) => setState(() {
-        agentConnected = value;
-      }));
+            agentConnected = value;
+          }));
 
       getCollectivite().then((value) => setState(() {
-        collectiviteConnected = value;
-      }));
+            collectiviteConnected = value;
+          }));
     });
   }
 
@@ -114,9 +114,7 @@ class _CollectePageState extends State<CollectePage> {
           : FloatingActionButton(
               backgroundColor: Defaults.greenPrincipal,
               foregroundColor: Colors.white,
-              onPressed: () async {
-
-              },
+              onPressed: () async {},
               child: const Icon(Icons.print),
             ),
       body: Container(
@@ -224,7 +222,11 @@ class _CollectePageState extends State<CollectePage> {
                                     context,
                                     MaterialPageRoute(
                                         builder: (_) => PaymentPage(
-                                            facture: _factures![index])));
+                                              facture: _factures![index],
+                                              agent: agentConnected!,
+                                              collectivite:
+                                                  collectiviteConnected!,
+                                            )));
                               }
                             },
                             trailing: (_factures![index].etatFacture ==
@@ -232,15 +234,25 @@ class _CollectePageState extends State<CollectePage> {
                                     _factures![index].etatFacture ==
                                         'MOBILE_REGLEMENT_PARTIEL')
                                 ? IconButton(
+
                                     ///---------- IMPRESSION -----------/////
                                     onPressed: () async {
-                                      pw.Document  docPage1 = await printerService.printFacture(_factures![index], agentConnected!, collectiviteConnected!);
+                                      pw.Document docPage1 =
+                                          await printerService.printFacture(
+                                              _factures![index],
+                                              agentConnected!,
+                                              collectiviteConnected!);
                                       Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                PrintingPage(docPage: docPage1),
-                                          ));
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) => PrintingPage(
+                                                  facture: facture!,
+                                                  collectiviteConnected:
+                                                      collectiviteConnected!,
+                                                  agentConnected:
+                                                      agentConnected!,
+                                                )),
+                                      );
                                     },
                                     icon: const Icon(
                                       Icons.print,
